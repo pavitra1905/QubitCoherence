@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# 1. Parameters (matching the previous plot)
+# 
 C0 = 1.0        # Initial coherence
 theta = 0.5     # Deterministic decay rate
 t_max = 10      # Total time
@@ -23,11 +23,9 @@ C_stoch[0] = C0
 for i in range(1, n_steps):
     # Calculate the random fluctuation (Wiener process increment)
     dW = np.random.normal(0, np.sqrt(dt)) 
-    # Update state: Deterministic step + Random "kick"
     dC = -theta * C_stoch[i-1] * dt + noise_scaled * dW
     C_stoch[i] = C_stoch[i-1] + dC
 
-# 5. Plotting
 plt.figure(figsize=(10, 6))
 
 # Plot baseline
