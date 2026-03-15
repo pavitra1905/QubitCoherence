@@ -1,7 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-# 
 C0 = 1.0        # Initial coherence
 theta = 0.5     # Deterministic decay rate
 t_max = 10      # Total time
@@ -29,12 +28,12 @@ for i in range(1, n_steps):
 plt.figure(figsize=(10, 6))
 
 # Plot baseline
-plt.plot(t, C_det, label='Deterministic (Ideal)', color='black', 
+plt.plot(t, C_det, label='Deterministic (Ideal)', color='teal', 
          linestyle='--', linewidth=1.5, alpha=0.7)
 
 # Plot noisy version
 plt.plot(t, C_stoch, label=f'Stochastic (with Noise σ={noise_scaled})', 
-         color='crimson', linewidth=1.2)
+         color='orangered', linewidth=1.2)
 
 # Formatting
 plt.title('Coherence Decay: Deterministic vs. Noisy Environment', fontsize=14)
