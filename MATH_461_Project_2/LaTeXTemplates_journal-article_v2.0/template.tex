@@ -1,0 +1,523 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Journal Article
+% LaTeX Template
+% Version 2.0 (February 7, 2023)
+%
+% This template originates from:
+% https://www.LaTeXTemplates.com
+%
+% Author:
+% Vel (vel@latextemplates.com)
+%
+% License:
+% CC BY-NC-SA 4.0 (https://creativecommons.org/licenses/by-nc-sa/4.0/)
+%
+% NOTE: The bibliography needs to be compiled using the biber engine.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%---------------------------------------------------------------------------------------
+
+\documentclass[
+	a4paper, % Paper size, use either a4paper or letterpaper
+	10pt, % Default font size, can also use 11pt or 12pt, although this is not recommended
+	unnumberedsections, % Comment to enable section numbering
+	twoside, % Two side traditional mode where headers and footers change between odd and even pages, comment this option to make them fixed
+]{LTJournalArticle}
+
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usetikzlibrary{external}
+\tikzexternalize % activate!
+\usepackage{amsfonts, amssymb}
+
+\makeatletter
+\def\[{ \begin{equation} }
+\def\]{ \end{equation} }
+\makeatother
+
+\addbibresource{citation.bib} % BibLaTeX bibliography file
+
+\runninghead{Qubit Coherence under Stochastic Environmental Noise} % A shortened article title to appear in the running head, leave this command empty for no running head
+
+\footertext{} %{\textit{Journal of Biological Sampling} (2024) 12:533-684} % Text to appear in the footer, leave this command empty for no footer text
+
+\setcounter{page}{1} % The page number of the first page, set this to a higher number if the article is to be part of an issue or larger work
+
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
+
+\title{First-Passage Analysis of Qubit Coherence under Stochastic Environmental Noise} % Article title, use manual lines breaks (\\) to beautify the layout
+
+% Authors are listed in a comma-separated list with superscript numbers indicating affiliations
+% \thanks{} is used for any text that should be placed in a footnote on the first page, such as the corresponding author's email, journal acceptance dates, a copyright/license notice, keywords, etc
+\author{%
+	Pavitra Bhargavi Allamaraju\textsuperscript{1}
+    \thanks{Corresponding author information: Allamaraju, 90215237} \, and Tia Tia\textsuperscript{1} \thanks{Corresponding author information: Tia, 41266891}%\\ \textbf{Received:} October 20, 2023, \textbf{Published:} December 14, 2023}
+}
+
+% Affiliations are output in the \date{} command
+\date{\footnotesize\textsuperscript{\textbf{1}} Department of Mathematics, University of British Columbia}
+
+% Full-width abstract
+\renewcommand{\maketitlehookd}{%
+	\begin{abstract}
+		\noindent Decoherence is one of the primary limitations to the reliable operation of quantum computers, as interactions with the surrounding environment gradually degrade the coherence of qubits over time. Because these disturbances arise from many microscopic processes that fluctuate unpredictably, the evolution of qubit coherence is inherently stochastic. In this paper, we develop a stochastic model to study how environmental noise affects the reliability and operational lifetime of a qubit during computation. The coherence amplitude is modeled using an Ornstein–Uhlenbeck process, which captures both systematic relaxation toward a baseline coherence level and random environmental fluctuations. Monte Carlo simulations are then used to estimate first-passage times, survival probabilities, and expected coherence lifetimes. The results illustrate how environmental noise and stabilizing system dynamics jointly influence qubit reliability and decoherence behavior.
+	\end{abstract}
+}
+
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\maketitle % Output the title section
+
+%----------------------------------------------------------------------------------------
+%	ARTICLE CONTENTS
+%----------------------------------------------------------------------------------------
+
+\section{Introduction}
+
+Quantum computing relies on the ability of quantum bits called \textit{qubits} to maintain coherent superposition states over time. Unlike classical bits, which exist deterministically in either classical states \textbf{0 or 1}, qubits can exist in linear combinations of these states. This distinction is illustrated in Figure 1. 
+
+\begin{figure}[H] % Single column figure
+	\includegraphics[width=\linewidth]{LaTeXTemplates_journal-article_v2.0/Figures/Qubit Diagram.drawio.pdf}
+	\caption{Comparison between a classical bit and a qubit. A classical bit can only take the discrete states 0 or 1, whereas a qubit can exist in a superposition state $|\psi\rangle = \alpha |0\rangle + \beta |1\rangle$, commonly visualized on the Bloch sphere \autocite{wodkiewicz2001stochastic}.} 
+    %\href{https://commons.wikimedia.org/wiki/File:Tolmukapea.jpg}%{https://commons.wiki-\\media.org/wiki/File:Tolmukapea.jpg}.}
+	\label{fig:qubit}
+\end{figure}
+
+This property enables powerful computational capabilities but also makes qubits highly sensitive to interactions with their surrounding environment \autocite{article2}. Environmental disturbances such as thermal fluctuations, electromagnetic radiation, material defects, and imperfect control electronics can disrupt the phase relationships that define a quantum state. This process, known as \textit{decoherence}, gradually degrades the quantum information stored in a qubit and ultimately limits the operational lifetime of quantum computations\autocite{tepanyan2025decoherence}. Understanding and quantifying decoherence is therefore a central challenge in the development of practical quantum hardware. In realistic devices, the loss of coherence is not purely deterministic; instead, it is influenced by many microscopic environmental interactions that fluctuate randomly in time. As a result, the coherence of a qubit evolves as a \textit{stochastic process} \autocite{wellard2001stochasticnoisesourcedecoherence} rather than a smooth deterministic decay. This naturally motivates the use of stochastic modelling techniques to capture the combined effects of systematic decoherence and random environmental noise. By representing these fluctuations probabilistically, stochastic models can describe both the average behavior of coherence decay and the variability observed across repeated experiments. Such models therefore provide a useful framework for studying the reliability of qubits operating in noisy environments.
+\begin{table*}
+\caption{Variables and parameters used in the qubit coherence model.}
+\centering
+\begin{tabular}{L{0.18\linewidth} L{0.18\linewidth} L{0.34\linewidth} L{0.18\linewidth}}
+\toprule
+Symbol & Type & Description & Units \\
+\midrule
+
+$t$ & variable & Time & seconds \\
+
+$C_t$ & continuous variable & Coherence amplitude of a qubit at time $t$ & dimensionless \\
+
+$Y_t$ & continuous variable & Tangens hyperbolicus transformed $C_t$ at $t$ & dimensionless \\
+
+$\tau$ & random variable & First passage time at which $C_t \le C_{\text{crit}}$ & seconds \\
+
+$\mu$ & parameter & Long-term mean coherence amplitude & dimensionless \\
+
+$\theta$ & parameter & Mean-reversion rate & $1/\text{seconds}$ \\
+
+$\sigma$ & parameter & Noise intensity & $1/\sqrt{\text{seconds}}$ \\
+
+$C_{\text{crit}}$ & parameter & Critical minimum coherence threshold & dimensionless \\
+
+$T$ & parameter & Time duration of the computation process & seconds \\
+
+\bottomrule
+\end{tabular}
+\label{tab:variables}
+\end{table*}
+
+How do random environmental fluctuations influence the reliability and usable lifetime of a qubit? Because these disturbances arise from many small processes that vary unpredictably, deterministic models alone cannot fully describe the variability observed in real quantum devices. Instead, probabilistic and stochastic approaches provide a more realistic framework for understanding how noise affects the stability of quantum states \autocite{10.1007/978-1-4419-8907-9_52}. \textbf{The goal of this project is therefore to investigate how environmental noise influences the evolution of qubit coherence over time.} In particular, we study how stochastic fluctuations affect the probability that a qubit’s coherence falls below a critical threshold during a computation, and we estimate the expected operational lifetime of a qubit in the presence of noise. By analyzing these effects, we aim to better understand the reliability of qubits in noisy environments and the factors that ultimately limit their usable coherence time.
+
+
+%------------------------------------------------
+
+\section{Model}
+
+To study the effect of environmental noise on qubit coherence, we construct a stochastic model describing the time evolution of the coherence amplitude of a qubit. Rather than modeling the full quantum state, which is governed by high-dimensional density matrix dynamics \autocite{10.1007/978-1-4419-8907-9_52}, we adopt a simplified approach in which the coherence of the system is represented by a single scalar variable 
+$C_t$. This variable represents a normalized measure of the qubit’s coherence at time $t$. The variables and parameters used in the model are summarized in Table~\ref{tab:variables}.
+
+In practice, perfectly coherent and completely decohered states are ideal limits that are approached asymptotically rather than reached exactly. \textbf{We assume that the complex quantum dynamics of the system can be summarized by this scalar coherence proxy $C_t$}, which captures the overall quality of the qubit’s coherence.
+
+Physically, coherence measures the degree to which a quantum state maintains well-defined phase relationships between basis states. Perfect coherence corresponds to an ideal pure quantum state, whereas decoherence occurs when interactions with the surrounding environment gradually convert this pure state into a mixed state. In practice, a qubit is \textbf{never perfectly coherent ($C=1$) and never exactly completely decohered ($C=0$)} \autocite{wodkiewicz2001stochastic, nielsen2010quantum}. These are ideal limiting states that are approached asymptotically but not reached exactly. Environmental interactions continuously drive the system toward mixed states, causing coherence to decay approximately exponentially over time. Consequently, the physically meaningful domain of the coherence variable is taken to be \textbf{$C_t \in (0,1)$} rather than including the endpoints [0,1].
+
+The evolution of coherence is influenced by both systematic decay and environmental noise. \textbf{We assume that environmental disturbances arise from many small, rapidly varying interactions}, such as thermal fluctuations, electromagnetic noise, and material defects \autocite{tepanyan2025decoherence}. By the central limit principle, the aggregate effect of these disturbances can be approximated as continuous stochastic noise, motivating the use of a Wiener process in the model. Furthermore, \textbf{we assume that the qubit operates around a nominal baseline coherence level $\mu$} representing the typical operating condition of the hardware, toward which the system tends to return over time. \textbf{Model parameters 
+$\mu, \theta \text{ and } \sigma$ are assumed to remain constant during a single computational run over the time interval $[0,T]$}, allowing the system to be treated as time-homogeneous. \textbf{Finally, we introduce a critical coherence threshold $C_{crit}$} below which the qubit is considered unusable, representing the loss of reliable quantum information during a computation.
+
+Under these assumptions, the evolution of qubit coherence is governed by two competing mechanisms: a deterministic tendency for the system to relax toward its baseline operating level and random perturbations caused by environmental fluctuations. This motivates the use of a stochastic differential equation to describe the dynamics of $C_t$.
+
+\subsection{Construction}
+
+To analyze how environmental noise affects the evolution of qubit coherence, we construct a stochastic dynamical model describing the time evolution of the coherence amplitude $C_t$. As discussed in the previous section, $C_t$ represents a normalized measure of the coherence of a qubit at time $t$, taking values in the interval $0<C_t<1$. The goal of the model is to capture both the systematic decay of coherence due to environmental coupling and the random fluctuations caused by stochastic disturbances in the surrounding environment.
+
+\begin{figure}[h]
+\begin{center}
+\begin{tikzpicture}
+
+% Base plot
+\node (plot) at (0,0) {\includegraphics[width=\linewidth]{LaTeXTemplates_journal-article_v2.0/Figures/CoherenceDecay.pdf}};
+
+% Overlay PDFs
+\node at (0.5,0.9)  {\includegraphics[width=2.2cm]{LaTeXTemplates_journal-article_v2.0/Figures/impurities.drawio.pdf}};
+\node at (1.75,0.9)   {\includegraphics[width=2.8cm]{LaTeXTemplates_journal-article_v2.0/Figures/particles.drawio.pdf}};
+\node at (2.9,0.9)  {\includegraphics[width=3.0cm]{LaTeXTemplates_journal-article_v2.0/Figures/emwaves.drawio.pdf}};
+\node at (1.1,-0.45) {\includegraphics[width=2.3cm]{LaTeXTemplates_journal-article_v2.0/Figures/vibrations.drawio.pdf}};
+\node at (2.3,-0.45)   {\includegraphics[width=2.5cm]{LaTeXTemplates_journal-article_v2.0/Figures/temp.drawio.pdf}};
+
+\end{tikzpicture}
+\end{center}
+    \centering
+    \caption{Exponential Coherence Decay: Deterministic (teal) vs Noisy Environment (orangered)}
+    \label{fig:det_stoch}
+\end{figure}
+
+\subsection{Deterministic Coherence Decay}
+
+In the absence of environmental noise, decoherence in many quantum systems can be approximated by an exponential decay process \autocite{HolmesCerfon2026ODE}. This behavior is commonly observed in physical systems where coherence gradually decreases as the qubit interacts with its environment. A simple deterministic model for this decay is therefore
+\[
+\dfrac{dC_t}{dt}= - \theta C_t,
+\]
+Where $\theta > 0$ represents the rate at which coherence decays over time. The solution of this differential equation is
+\[
+C_t = C_0 e^{- \theta t},
+\]
+where $C_0$ is the initial coherence of the qubit. This expression provides a baseline description of coherence loss but does not account for the variability introduced by random environmental disturbances.
+
+\subsection{Incorporating Stochastic Environmental Noise}
+
+In realistic quantum hardware, decoherence does not occur as a perfectly smooth deterministic process. Instead, environmental disturbances such as thermal fluctuations, electromagnetic noise, and material defects introduce random perturbations that influence the coherence dynamics. Because these disturbances arise from many small and rapidly fluctuating processes, their aggregate effect can be approximated as continuous stochastic noise. This motivates the use of a \textbf{Wiener process $W_t$} to represent environmental fluctuations.
+
+To incorporate these effects, we extend the deterministic model to a stochastic differential equation. Furthermore, experimental systems typically operate around a nominal baseline coherence level determined by hardware conditions. This suggests that coherence does not simply decay indefinitely but instead fluctuates around a characteristic operating level. A natural model that captures both stochastic fluctuations and a tendency to return to a baseline level is the \textbf{Ornstein--Uhlenbeck (OU) process}, which is widely used to describe mean-reverting stochastic dynamics.
+The evolution of the coherence amplitude is therefore modeled by the stochastic differential equation \autocite{HolmesCerfon2026ODE}
+
+\[
+dC_t=\theta(\mu - C_t)dt+ \sigma dW_t,
+\]
+
+where $\mu$
+represents the long-term mean coherence level of the system, $\theta$ is the mean-reversion rate, and $\sigma$ determines the intensity of the environmental noise. The first term is the \textit{drift term} which represents the deterministic tendency of the system to relax toward the baseline coherence level $\mu$, while the second term is the \textit{diffusion term} which captures random perturbations due to environmental disturbances.
+
+Although stochastic models are often nondimensionalized to reduce the number of parameters, \textbf{we retain the dimensional form of the equation here}. Since the coherence variable $C_t$ is already dimensionless and the physical time scale of the computation $T$ is meaningful for interpreting qubit lifetimes, nondimensionalization does not significantly simplify the model or provide additional insight. Retaining dimensional units also allows the parameters $\theta, \sigma$, and T to be interpreted directly in terms of physical time scales relevant to quantum hardware.
+
+\subsection{Expected Behavior of the Process}
+
+The Ornstein--Uhlenbeck process provides a convenient representation of the combined deterministic and stochastic effects governing coherence dynamics. Taking expectations of the stochastic differential equation and using the property $\mathbb{E}[dW_t]=0$ gives
+
+\[
+d\mathbb{E}[C_t]=\theta(\mu - \mathbb{E}[C_t]),
+\]
+
+which has solution
+
+\[
+\mathbb{E}[C_t]=\mu+(C_0-\mu)e^{-0t}.
+\]
+
+Thus, in expectation, the coherence approaches the baseline level $\mu$ exponentially over time while stochastic fluctuations introduce variability around this mean trajectory.
+
+For constant parameters, the OU process also admits a stationary distribution given by \autocite{mazzolo2024first}
+
+\[
+C_\infty \sim N(\mu, \dfrac{\sigma^2}{2\theta}),
+\]
+
+indicating that long-term fluctuations occur around the baseline coherence level with variance determined by the relative strength of noise and mean reversion.
+
+\subsection{First-Passage Time and Failure Criterion}
+
+A central objective of this project is to quantify the operational lifetime of a qubit in the presence of environmental noise. To do this, we introduce a critical coherence threshold 
+$C_{crit}$, below which the qubit is considered no longer reliable for computation. Physically, this threshold represents the minimum coherence required for the qubit to preserve usable quantum information during a computational task.
+
+We therefore define the \textbf{first-passage time} of the coherence process to the threshold 
+$C_{crit}$ by 
+
+\[
+\tau = \inf\{t\ge0:C_t \le C_{crit}\}.
+\]
+
+This quantity represents the first time at which the coherence amplitude falls to or below the critical level. In other words, $\tau$ is interpreted as the random lifetime of the qubit under the stochastic dynamics of the model.
+
+This definition allows us to connect the stochastic coherence model to a concrete reliability question. Suppose a quantum computation is required to run over a time interval 
+[0,T]. The qubit remains operational throughout the computation if its coherence stays above the threshold for the entire interval, which is equivalent to the event $\tau > T$. 
+
+Conversely if, $\tau \le T,$ then the coherence falls below the critical level before the computation is complete, and the qubit is regarded as having failed during the run.
+
+The first-passage time formulation therefore provides a natural way to study both the reliability and the lifetime of the qubit. In particular, it enables us to estimate quantities such as the survival probability $P(\tau>T)$, the failure probability $P(\tau\le T)$, and the distribution of coherence lifetimes across repeated stochastic realizations \autocite{mazzolo2024first}. These quantities will later be approximated using Monte Carlo simulations of the model.
+
+\subsection{Bounded Coherence and Variable Transformation}
+
+Although the Ornstein--Uhlenbeck \autocite{article} process provides a convenient stochastic model for mean-reverting coherence dynamics, it possesses an important mathematical limitation in the present setting. The OU process evolves on the entire real line, meaning that direct simulation of
+\[
+dC_t = \theta(\mu - C_t)\,dt + \sigma\, dW_t
+\]
+can produce values of $C_t$ outside the physically meaningful interval $(0,1)$. Since $C_t$ represents a normalized measure of qubit coherence, such values are not physically admissible.
+
+\begin{figure}[H] % Single column figure
+	\includegraphics[width=\linewidth]{LaTeXTemplates_journal-article_v2.0/Figures/untransformed ct.pdf}
+	\caption{Sample paths of the untransformed Ornstein--Uhlenbeck coherence model.} 
+    %\href{https://commons.wikimedia.org/wiki/File:Tolmukapea.jpg}%{https://commons.wiki-\\media.org/wiki/File:Tolmukapea.jpg}.}
+	\label{fig:untransformed_paths}
+\end{figure}
+
+This issue is visible in numerical simulations of the untransformed OU process. Figure~\ref{fig:untransformed_paths} shows sample trajectories generated using the OU dynamics. Although the process fluctuates around a mean coherence level, stochastic noise can drive the trajectories arbitrarily close to or even beyond the physical bounds of the coherence variable. Because the coherence amplitude must remain within $(0,1)$, this motivates the introduction of a bounded transformation \autocite{article}.
+
+\subsubsection{Transformation to an Unbounded Variable}
+
+To enforce the physical constraint $0 < C_t < 1$, we introduce a transformation that maps the bounded interval $(0,1)$ to $(-\infty, \infty)$. Let
+\[
+Y_t = \operatorname{arctanh}(2C_t - 1).
+\]
+Equivalently,
+\[
+C_t = \frac{1}{2}\left(1 + \tanh(Y_t)\right).
+\]
+
+The tangens hyperbolicus function provides a smooth mapping between bounded and unbounded domains \autocite{article}:
+\[
+\tanh : \mathbb{R} \rightarrow (-1,1).
+\]
+By rescaling and shifting this mapping, the interval $(0,1)$ is obtained. As $Y_t \to \pm \infty$, the coherence variable approaches the limiting states
+\[
+C_t \to 1 \quad \text{or} \quad C_t \to 0,
+\]
+ensuring that the transformed model respects the physical bounds of the coherence amplitude.
+
+\subsubsection{Choice of Transformation}
+
+Several possible transformations can be used to map the bounded interval $(0,1)$ to an unbounded domain. Examples include inverse trigonometric and logistic-type mappings such as \autocite{article}
+\[
+\tan^{-1}(x), \qquad \frac{2}{\pi}\tan^{-1}\!\left(\frac{\pi}{2}x\right) , \qquad \tanh(x).
+\]
+
+\begin{figure}[H] % Single column figure
+	\includegraphics[scale=0.4]{LaTeXTemplates_journal-article_v2.0/Figures/desmos-graph.pdf}
+	\caption{Comparison of candidate transformations mapping $\mathbb{R}$ to bounded intervals.} 
+    %\href{https://commons.wikimedia.org/wiki/File:Tolmukapea.jpg}%{https://commons.wiki-\\media.org/wiki/File:Tolmukapea.jpg}.}
+	\label{fig:transformations}
+\end{figure}
+
+Figure~\ref{fig:transformations} compares these candidate transformations. While all three functions provide smooth sigmoidal mappings, the hyperbolic tangent transformation is particularly convenient for stochastic modelling \autocite{article}. It provides symmetric saturation near the boundaries, has simple analytical derivatives, and leads to relatively tractable expressions when applying It\^o calculus. For these reasons, we adopt the $\tanh/\operatorname{arctanh}$ transformation in our model.
+
+\subsubsection{Application of It\^o's Formula}
+
+Because $C_t$ is defined as a nonlinear function \autocite{cai2024quantum} of the stochastic process $Y_t$, the dynamics of the transformed variable must be determined using It\^o's formula \autocite{HolmesCerfon2026ODE}. Let
+\[
+C_t = f(Y_t) = \frac{1}{2}\left(1 + \tanh(Y_t)\right).
+\label{eq:7}
+\]
+
+The derivatives of $f$ are
+\[
+f'(Y_t) = \frac{1}{2}\operatorname{sech}^2(Y_t),
+\]
+\[
+f''(Y_t) = -\tanh(Y_t)\operatorname{sech}^2(Y_t).
+\]
+
+Applying It\^o's lemma gives
+\[
+dC_t =
+f'(Y_t)dY_t
++
+\frac{1}{2}f''(Y_t)(dY_t)^2.
+\]
+
+This relationship allows the stochastic dynamics of $Y_t$ to be derived from the original OU equation. The resulting transformed stochastic differential equation governs the evolution of the unbounded variable $Y_t$, while the inverse mapping ensures that the coherence amplitude $C_t$ always remains within the physical interval $(0,1)$.
+
+\subsubsection{Effect of the Transformation}
+
+After applying the transformation, simulations are performed in the variable $Y_t$ and then mapped back to the coherence variable $C_t$. Figure~\ref{fig:transformed_paths} shows trajectories of the transformed stochastic process. Unlike the untransformed OU simulations, the resulting coherence paths remain confined within the interval $(0,1)$ while still capturing stochastic fluctuations and mean-reverting behaviour \autocite{article}.
+
+This transformation therefore provides a mathematically convenient way to enforce physical bounds on the coherence variable while preserving the stochastic structure of the underlying Ornstein--Uhlenbeck dynamics.
+
+\begin{figure}[H] % Single column figure
+	\includegraphics[width=\linewidth]{LaTeXTemplates_journal-article_v2.0/Figures/transformed yt.pdf}
+	\caption{Sample paths of the transformed coherence process ensuring bounded dynamics.} 
+    %\href{https://commons.wikimedia.org/wiki/File:Tolmukapea.jpg}%{https://commons.wiki-\\media.org/wiki/File:Tolmukapea.jpg}.}
+	\label{fig:transformed_paths}
+\end{figure}
+
+%------------------------------------------------
+
+\section{Results}
+
+In this section, we present the results obtained from stochastic simulations of the qubit coherence model. The model dynamics were simulated using the \textbf{Euler-Maruyama method}, which provides a numerical approximation of the stochastic differential equation governing the coherence process. With time step $\Delta t$, the discretized update rule takes the form \autocite{HolmesCerfon2026ODE}
+\[
+Y_{n+1} = Y_n + \theta(\nu - Y_n)\Delta t + \sigma \sqrt{\Delta t}\, Z_n,
+\]
+where $\nu = \operatorname{arctanh}(2\mu - 1)$ represents transformed mean coherence and $Z_n \sim N(0,1)$ represents independent Gaussian noise increments.
+
+To analyze the statistical behaviour of the model, we performed \textbf{Monte Carlo simulations} by generating a large number of independent sample trajectories for each parameter configuration. The initial condition, critical threshold, and computation duration for these simulations were fixed at $C_0 = 0.5$, $C_{crit} = 0.1$, and $T = 10$ seconds. These simulated paths were then used to estimate quantities of interest, including the distribution of first-passage times, survival probabilities, and expected coherence lifetimes. The results are organized to first illustrate the behaviour of the stochastic process through representative trajectories, followed by statistical analyses of decoherence times and parameter sensitivity.
+
+
+\subsection{Behaviour of the Stochastic Coherence Process}
+
+To understand the qualitative behaviour of the model, we first examine sample trajectories of the Transformed Coherence $Y_t$ under different parameter settings. These trajectories illustrate how the baseline coherence level, stabilizing dynamics, and environmental noise influence the evolution of the system \autocite{HolmesCerfon2026ODE}.
+
+\subsubsection{Effect of Long-Term Mean Coherence $\mu$:}
+In this experiment, the long-term mean coherence parameter $\mu$ was varied while keeping the mean-reversion rate $\theta$ and noise intensity $\sigma$ fixed. Figure~\ref{fig:Yt_mu} shows several simulated trajectories of $Y_t$ for different values of $\mu$.
+
+As expected, increasing $\mu$ shifts the trajectories upward, indicating that the stochastic process fluctuates around a higher equilibrium level. Since the coherence variable $C_t$ is obtained from $Y_t$ through equation \eqref{eq:7}, higher values of $\mu$ correspond to higher baseline coherence in the physical system. This suggests that qubits operating around a higher coherence baseline are more resilient to fluctuations and less likely to reach the failure threshold.
+
+\begin{figure}[H] % Single column figure
+	\includegraphics[width=\linewidth]{LaTeXTemplates_journal-article_v2.0/Figures/Yt_different_mu.pdf}
+	\caption{Sample trajectories of the Transformed Coherence $Y_t$ for different Long-Term Mean Coherence $\mu$ values of $0.0001$ (green), $0.5$ (blue), and $0.9999$ (orange), each run for $100$ simulations. The mean-reversion rate and noise intensity were fixed at $\theta = 1.0$ and $\sigma = 1.0$. The red dashed line represents the transformed $C_{crit}$ threshold. Increasing $\mu$ shifts the equilibrium level of the process upward, resulting in trajectories that fluctuate around higher coherence levels.}
+    %\href{https://commons.wikimedia.org/wiki/File:Tolmukapea.jpg}%{https://commons.wiki-\\media.org/wiki/File:Tolmukapea.jpg}.}
+	\label{fig:Yt_mu}
+\end{figure}
+
+\subsubsection{Effect of Mean-Reversion Rate $\theta$:}
+Next, we investigate the influence of the mean-reversion rate $\theta$, while holding $\mu$ and $\sigma$ fixed. Figure~\ref{fig:Yt_theta} shows sample trajectories for different values of $\theta$.
+
+The mean-reversion parameter controls how quickly the process returns to its equilibrium level after fluctuations. Larger values of $\theta$ result in trajectories that rapidly return toward the long-term mean coherence, leading to smaller deviations from the equilibrium level. In contrast, smaller values of $\theta$ allow the process to wander further away from the baseline before being pulled back. This behaviour reflects the stabilizing effect of system dynamics that attempt to restore coherence.
+
+\begin{figure}[H] % Single column figure
+	\includegraphics[width=\linewidth]{LaTeXTemplates_journal-article_v2.0/Figures/Yt_different_theta.pdf}
+	\caption{Sample trajectories of the Transformed Coherence $Y_t$ for different Mean-Reversion Rates $\theta$ of $0.5$ (orange), $1.0$ (blue), and $8.0$ (green), each run for $100$ simulations. The long-term mean coherence and noise intensity were fixed at $\mu = 0.5$ and $\sigma = 1.0$. The red dashed line represents the transformed $C_{crit}$ threshold. Increasing $\theta$ cause the process to return more rapidly toward its equilibrium level, resulting in smaller deviations from the long-term mean coherence.}
+    %\href{https://commons.wikimedia.org/wiki/File:Tolmukapea.jpg}%{https://commons.wiki-\\media.org/wiki/File:Tolmukapea.jpg}.}
+	\label{fig:Yt_theta}
+\end{figure}
+
+\subsubsection{Effect of Noise Intensity $\sigma$:}
+Finally, we examine the impact of environmental noise intensity $\sigma$, while keeping $\mu$ and $\theta$ fixed. Figure~\ref{fig:Yt_sigma} shows trajectories generated under different noise intensities.
+
+As the noise intensity increases, the fluctuations in the process become larger and more irregular. High noise levels produce trajectories that deviate significantly from the baseline and are more likely to approach the decoherence threshold. This demonstrates how environmental disturbances can destabilize the coherence of the qubit and increase the probability of failure during computation.
+
+\begin{figure}[H] % Single column figure
+	\includegraphics[width=\linewidth]{LaTeXTemplates_journal-article_v2.0/Figures/Yt_different_sigma.pdf}
+	\caption{Sample trajectories of the Transformed Coherence $Y_t$ for different Noise Intensity $\sigma$ values of $0.5$ (green), $1.0$ (blue), and $2.0$ (orange), each run for $100$ simulations. The long-term mean coherence and mean-reversion rate were fixed at $\mu = 0.5$ and $\theta = 1.0$. The red dashed line represents the transformed $C_{crit}$ threshold. Increasing $\sigma$ produces larger fluctuations in the process, making threshold crossings and decoherence events more likely.}
+    %\href{https://commons.wikimedia.org/wiki/File:Tolmukapea.jpg}%{https://commons.wiki-\\media.org/wiki/File:Tolmukapea.jpg}.}
+	\label{fig:Yt_sigma}
+\end{figure}
+
+\subsection{Distribution of First-Passage Times}
+
+To quantify when decoherence occurs, we analyze the distribution of first-passage times $\tau$. Figure~\ref{fig:tau_histogram} shows the histogram of simulated first-passage times obtained from Monte Carlo simulations. %, defined as the first time the coherence process crosses the critical threshold $C_{crit}$.
+
+The histogram illustrates the variability in failure times across different realizations of the stochastic process. Even when parameters are fixed, the presence of environmental noise leads to a spread of possible decoherence times. Some trajectories cross the threshold early, while others remain coherent for much longer periods. This variability highlights the inherently probabilistic nature of decoherence in the presence of noise.
+
+The distribution of first-passage times is strongly right-skewed, with a pronounced peak at earlier times ($\tau \approx 1$ second) and a long tail extending toward larger values of $\tau$. Such behaviour is consistent with theoretical results for stochastic hitting-time problems. In many diffusion processes, first-passage times follow distributions similar to the inverse Gaussian (also known as the Wald distribution), which are characterized by a high probability of relatively early threshold crossings and a small probability of unusually long survival times. The long right tail observed in the histogram therefore represents rare trajectories that remain coherent significantly longer than the average.
+
+\begin{figure}[H] % Single column figure
+	\includegraphics[width=\linewidth]{LaTeXTemplates_journal-article_v2.0/Figures/First_Passage_Histogram.pdf}
+	\caption{Histogram of simulated first-passage times $\tau$, defined as the first time the coherence process falls below the threshold $C_{crit}$. The parameter values for the simulations were set at $\mu = 0.5$, $\theta=1.0$, and $\sigma = 1.0$. The distribution illustrates the variability in decoherence times across 100,000 Monte Carlo realizations due to stochastic environmental fluctuations.}
+    %\href{https://commons.wikimedia.org/wiki/File:Tolmukapea.jpg}%{https://commons.wiki-\\media.org/wiki/File:Tolmukapea.jpg}.}
+	\label{fig:tau_histogram}
+\end{figure}
+
+\subsection{Survival Probability of Qubit Coherence}
+
+To further analyze reliability over time, we compute the survival probability $P(\tau > t)$ which represents the probability that the qubit remains above the coherence threshold up to time $t$. The survival probability curve shown in Figure~\ref{fig:surv_curve} was estimated using Monte Carlo simulations.
+
+The curve decreases monotonically as time increases, reflecting the growing likelihood that environmental fluctuations will eventually drive the system below the coherence threshold. At early times, the survival probability is close to one, indicating that most trajectories remain coherent. As time progresses, the probability declines as more trajectories experience decoherence events.
+
+\begin{figure}[H] % Single column figure
+	\includegraphics[width=\linewidth]{LaTeXTemplates_journal-article_v2.0/Figures/Survival_Prob_Curve.pdf}
+	\caption{Estimated Survival Probability $P(\tau > t)$, representing the probability that the qubit coherence remains above the critical threshold $C_{crit}$ up to time $t$. The curve was computed using 100,000 Monte Carlo simulations with parameter values $\mu = 0.5$, $\theta=1.0$, $\sigma = 1.0$, and demonstrates how the likelihood of maintaining coherence decreases over time.}
+    %\href{https://commons.wikimedia.org/wiki/File:Tolmukapea.jpg}%{https://commons.wiki-\\media.org/wiki/File:Tolmukapea.jpg}.}
+	\label{fig:surv_curve}
+\end{figure}
+ 
+\subsection{Expected Lifetime as a Function of Noise Intensity}
+
+To study the effect of environmental disturbances on qubit reliability, we compute the expected (truncated) lifetime $\mathbb{E}[\min(\tau, T)]$ as a function of the noise intensity $\sigma$. 
+
+\begin{figure}[H] % Single column figure
+	\includegraphics[width=\linewidth]{LaTeXTemplates_journal-article_v2.0/Figures/E(tau)_vs_sigma_smoother.pdf}
+	\caption{Expected (truncated) Lifetime $\mathbb{E}[\min(\tau, T)]$ as a function of noise intensity $\sigma$ for several parameter configurations: $\theta=1.0, \mu=0.5$ (blue), $\theta=1.0, \mu=0.3$ (cyan), $\theta=1.0, \mu=0.7$ (green), $\theta=0.5, \mu=0.5$ (orange), and $\theta=2.0, \mu=0.5$ (purple), computed using 2,000 Monte Carlo simulations for each curve. The curves illustrate how increasing environmental noise reduces the average duration for which the qubit remains above the coherence threshold. Variations in $\mu$ and $\theta$ demonstrate the stabilizing effects of higher mean coherence and stronger mean-reversion.}
+    %\href{https://commons.wikimedia.org/wiki/File:Tolmukapea.jpg}%{https://commons.wiki-\\media.org/wiki/File:Tolmukapea.jpg}.}
+	\label{fig:lifetime_vs_noise}
+\end{figure}
+
+We define the \textit{expected truncated decoherence lifetime} or simply \textit{expected truncated lifetime} as $\mathbb{E}[\min(\tau, T)$, where $\tau$ is the first passage time at which the coherence level of a qubit falls below the critical threshold $C_{crit}$ and $T$ denotes the computation time duration or in this case, the \textit{finite observation horizon}. This quantity represents the expected time until the qubit decoheres, with the expectation taken over all the realizations of the stochastic coherence dynamics. \textbf{The truncation at $T$ ensures that the trajectories that do not reach the decoherence threshold within the observation window still contribute to a finite value to the expectation.} As a result, the quantity captures the typical duration for which the qubit maintains coherence while remaining well-defined even when the decoherence does not occur within the simulated time interval. Therefore, we get smoother curves instead of disjoint ones. Figure~\ref{fig:lifetime_vs_noise} shows the estimated expected lifetime for several parameter configurations of $\mu$ and $\theta$. 
+
+The results indicate a clear decreasing relationship between noise intensity and coherence lifetime. As $\sigma$ increases, random fluctuations become stronger, causing trajectories to reach the failure threshold more quickly on average \autocite{bittner2024correlated}. Additionally, larger values of $\theta$ tend to increase the expected lifetime by stabilizing the process around its equilibrium level, while larger long-term mean coherence values $\mu$ also improve resilience to noise.
+
+\subsection{Parameter Landscape: Contour Analysis of Lifetime and Reliability}
+
+To visualize the joint influence of system parameters, we constructed contour plots of the expected (truncated) lifetime $\mathbb{E}[\min(\tau, T)]$ and survival probability $P(\tau > T)$ as functions of the noise intensity $\sigma$ and the mean-reversion rate $\theta$. These plots (Figures~\ref{fig:lifetime_contour} and~\ref{fig:surv_contour}) summarize how the interaction between environmental noise and stabilizing dynamics affects qubit reliability.
+
+The contour map of expected lifetime shows that higher noise intensities significantly reduce the operational lifetime of the qubit. However, increasing the mean reversion rate can partially compensate for this effect by stabilizing the coherence process. Similarly, the survival probability contour plot highlights regions of the parameter space where the qubit is likely to remain coherent throughout the computation window and regions where failure becomes highly probable. Therefore, quantitatively, this implies that the mean reversion rate acts as a restorative force which promotes faster return to equilibrium and helps mitigate the disruptive effect of external noise, leading to stabilization \autocite{bittner2024correlated}. The sharp gradients in these plots identify critical thresholds beyond which error correction becomes increasingly difficult. So mapping these boundaries is essential for identifying the ‘sweet spots’ for stable qubit performance.
+
+\begin{figure}[H] % Single column figure
+	\includegraphics[width=\linewidth]{LaTeXTemplates_journal-article_v2.0/Figures/Expected_Lifetime_Contour.pdf}
+	\caption{Contour plot of the Expected (truncated) Lifetime $\mathbb{E}[\min(\tau, T)]$ for $T = 10$, as a function of noise intensity $\sigma$ and mean-reversion rate $\theta$ with $\mu = 0.5$, computed using 2,000 Monte Carlo simulations. Warmer colours indicate longer coherence lifetimes, highlighting the tradeoff between environmental noise and stabilizing system dynamics.}
+    %\href{https://commons.wikimedia.org/wiki/File:Tolmukapea.jpg}%{https://commons.wiki-\\media.org/wiki/File:Tolmukapea.jpg}.}
+	\label{fig:lifetime_contour}
+\end{figure}
+
+\begin{figure}[H] % Single column figure
+	\includegraphics[width=\linewidth]{LaTeXTemplates_journal-article_v2.0/Figures/Survival_Prob_Contour.pdf}
+	\caption{Contour plot of the Survival Probability $P(\tau > T)$, representing the probability that the qubit remains coherent throughout the computation interval $T = 10$, as a function of noise intensity $\sigma$ and mean-reversion rate $\theta$ with $\mu = 0.5$, computed using 2,000 Monte Carlo simulations. The plot shows how increasing noise reduces reliability, while larger mean-reversion rates improve coherence stability.}
+    %\href{https://commons.wikimedia.org/wiki/File:Tolmukapea.jpg}%{https://commons.wiki-\\media.org/wiki/File:Tolmukapea.jpg}.}
+	\label{fig:surv_contour}
+\end{figure}
+
+Together, these contour plots provide a global view of the parameter landscape, illustrating how environmental noise and stabilizing dynamics jointly determine the reliability of the qubit during quantum computation.
+
+%\section{Results}
+
+% \begin{table} % Single column table
+% 	\caption{Example single column table.}
+% 	\centering
+% 	\begin{tabular}{l l r}
+% 		\toprule
+% 		\multicolumn{2}{c}{Location} \\
+% 		\cmidrule(r){1-2}
+% 		East Distance & West Distance & Count \\
+% 		\midrule
+% 		100km & 200km & 422 \\
+% 		350km & 1000km & 1833 \\
+% 		600km & 1200km & 890 \\
+% 		\bottomrule
+% 	\end{tabular}
+% 	\label{tab:distcounts}
+% \end{table}
+
+%\begin{figure*} % Two column figure (notice the starred environment)
+%	\includegraphics[width=\linewidth]{Fibroblastid.jpg}
+%	\caption{Bovine pulmonary artery endothelial cells in culture. Blue: nuclei; red: mitochondria; green: microfilaments. Computer generated image from a 3D model based on a confocal laser scanning microscopy using fluorescent marker dyes. Source: Heiti Paves, \href{https://commons.wikimedia.org/wiki/File:Fibroblastid.jpg}{https://commons.wikimedia.org/wiki/File:Fibroblastid.jpg}.}
+%	\label{fig:bpartery}
+%\end{figure*}
+
+%\subsection{International Support}
+
+%\noindent àáâäãåèéêëìíîïòóôöõøùúûüÿýñçčšž
+
+%\noindent ÀÁÂÄÃÅÈÉÊËÌÍÎÏÒÓÔÖÕØÙÚÛÜŸÝÑ
+
+%\noindent ßÇŒÆČŠŽ
+
+%\subsection{Links}
+
+%This is a clickable URL link: \href{https://www.latextemplates.com}{LaTeX %Templates}. This is a clickable email link: %\href{mailto:vel@latextemplates.com}{vel@latextemplates.com}. This is a %clickable monospaced URL link: \url{https://www.LaTeXTemplates.com}.
+
+%------------------------------------------------
+
+\section{Conclusion}
+
+% \textbf{\textit{To Omit:}}\textbf{This statement requires citation \autocite{Smith:2023qr}. This statement requires multiple citations \autocite{Smith:2023qr, Smith:2024jd}. This statement contains an in-text citation, for directly referring to a citation like so: \textcite{Smith:2024jd}.}
+
+In this paper, we developed a stochastic framework for modelling the evolution of qubit coherence under environmental noise. By representing the coherence amplitude as a stochastic process, the model captures both the systematic decay of quantum coherence and the random perturbations caused by microscopic environmental interactions. The resulting dynamics were described using an Ornstein–Uhlenbeck process, which naturally incorporates mean-reverting behaviour around a baseline coherence level while allowing stochastic fluctuations.
+
+Because qubit coherence is physically bounded between 0 and 1, a nonlinear transformation was introduced to ensure that simulated trajectories remain within the admissible interval. The $\tanh/\operatorname{arctanh}$ transformation provided a smooth mapping between the bounded coherence variable and an unbounded stochastic process, allowing the use of standard stochastic differential equation techniques while preserving the physical constraints of the system.
+
+Using Monte Carlo simulations of the transformed stochastic model, we analyzed several reliability measures of the qubit coherence process. In particular, we examined the distribution of first-passage times to a critical coherence threshold, the survival probability $P(\tau > t)$, and the expected truncated lifetime $\mathbb{E}[\min(\tau,T)]$. The simulations demonstrate that environmental noise plays a critical role in determining qubit reliability. Higher noise intensities lead to larger fluctuations in the coherence process, increasing the likelihood of threshold crossings and reducing the expected operational lifetime of the qubit. Conversely, stronger mean-reversion dynamics and higher baseline coherence levels improve stability by keeping the system closer to its equilibrium operating point
+
+Although the model captures several important qualitative features of decoherence dynamics, it remains a simplified representation of real quantum hardware. In particular, the coherence of physical qubits is influenced by additional mechanisms such as non-Gaussian noise, correlated environmental disturbances, and time-varying system parameters. Future work could extend the present framework by incorporating more realistic noise models, multi-qubit interactions, or control feedback mechanisms.
+
+Overall, the stochastic modelling approach developed in this study provides a useful framework for understanding how environmental fluctuations affect the reliability of qubits during quantum computation. By linking stochastic coherence dynamics to measurable reliability metrics such as survival probabilities and decoherence lifetimes, the model offers insights into how hardware parameters and environmental conditions influence the practical performance of quantum computing systems.
+
+
+%----------------------------------------------------------------------------------------
+%	 REFERENCES
+%----------------------------------------------------------------------------------------
+
+\nocite{*}
+\printbibliography % Output the bibliography
+
+%----------------------------------------------------------------------------------------
+
+\section{Gen AI declaration} 
+
+Generative artificial intelligence tools were used in a limited and supportive capacity during the preparation of this report. Specifically, these tools assisted with clarifying background quantum computing concepts, refining and debugging minor aspects of code used for getting rid of white space in contour plots and correcting simple programming/latex errors.
+
+All scientific reasoning, mathematical modelling, data analysis, interpretation of results, and final conclusions were developed independently by the authors. The use of generative AI did not replace original intellectual contributions, experimental design, or critical evaluation, and the authors take full responsibility for the content of this work.
+
+\end{document}
